@@ -72,7 +72,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('記録完了！ ( #ﾟДﾟ) 推定 +500円 (精神的苦痛)'), 
+          content: Text('記録完了！お疲れ様です (｀･ω･´)ゞ 推定 +500円'), 
           duration: Duration(seconds: 1),
           backgroundColor: Colors.redAccent,
         ),
@@ -94,7 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                '未払い額 (￥▽￥)', 
+                '未払い額', // Simplified title
                 style: TextStyle(color: Colors.grey, letterSpacing: 2),
                 textAlign: TextAlign.center,
               ),
@@ -102,10 +102,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               StreamBuilder(
                 stream: logStream,
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  // Fix for Infinite Loading:
+                  // If connection is waiting (initial load), show loader.
+                  // BUT, if we are in "offline/fallback" mode, the stream might be empty and finish instantly.
                   
-                  // Simple calc: Each log is roughly 15 mins (0.25 hours) if periodic
-                  // + Stress logs (count as bonus)
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                      // Optional: We could add a timeout wrapper here, but for now 
+                      // let's assume if it's taking too long it's network.
+                      // However, to solve the User's specific "infinite loop" complaint which is likely due to
+                      // the previous code defaulting to loader if !hasData:
+                      return const Center(child: CircularProgressIndicator());
+                  }
+
+                  // If we have no data (e.g. empty stream from offline mode, or just no logs yet)
+                  // Show default instead of loading.
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                       return const Text(
+                        '¥ 0',
+                        style: TextStyle(
+                          color: Colors.white30,
+                          fontSize: 64, 
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Monospace'
+                        ),
+                        textAlign: TextAlign.center,
+                      );
+                  }
+                  
                   final docs = snapshot.data!.docs;
                   double totalHours = docs.length * 0.25; 
                   int amount = (totalHours * hourlyWage).round();
@@ -126,7 +149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               
               const Spacer(),
               
-              // Stress Button
+              // Stress Button -> "勤怠" (Kintai)
               GestureDetector(
                 onTap: _onStressPressed,
                 child: Container(
@@ -138,11 +161,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   child: const Center(
                     child: Text(
-                      'ちくしょう！\n( #ﾟДﾟ)', 
+                      '勤怠', 
                       style: TextStyle(
                         color: Colors.redAccent,
                         fontWeight: FontWeight.bold,
-                        fontSize: 20
+                        fontSize: 24
                       ),
                       textAlign: TextAlign.center,
                     ),

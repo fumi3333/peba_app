@@ -45,8 +45,8 @@ class TrackingService {
         autoStart: false,
         isForegroundMode: true,
         notificationChannelId: notificationChannelId,
-        initialNotificationTitle: 'Peba 動作中 (｀･ω･´)', 
-        initialNotificationContent: '監視を開始しました... (ΦωΦ)',
+        initialNotificationTitle: 'Peba 動作中', 
+        initialNotificationContent: '監視を開始しました',
         foregroundServiceNotificationId: notificationId,
       ),
       iosConfiguration: IosConfiguration(
@@ -80,8 +80,8 @@ class TrackingService {
         if (await service.isForegroundService()) {
           // Update notification
           service.setForegroundNotificationInfo(
-            title: "Peba 監視中 (・∀・)", 
-            content: "最終スキャン: ${DateTime.now()} |ω・`)"
+            title: "Peba 監視スキャン", 
+            content: "最終更新: ${DateTime.now()}",
           );
         }
       }
