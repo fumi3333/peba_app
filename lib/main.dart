@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'features/tracking/tracking_service.dart';
 import 'ui/home_screen.dart';
 
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   String? errorMessage;
