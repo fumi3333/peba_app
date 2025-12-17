@@ -1,0 +1,50 @@
+name: Build and Release App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'latest'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        # Building release apk. 
+        # Note: In a real scenario, you need to configure signing in build.gradle. 
+        # Here we build --release, assuming debug signing or no signing for MVP demo purposes,
+        # or that the user will configure keystore secrets later.
+        # Simple MVP: build apk (might be debug-signed if not configured otherwise)
+        run: flutter build apk --release --split-per-abi
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk,build/app/outputs/flutter-apk/app-arm64-v8a-release.apk"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          body: "New Peba release. Fight for your rights."
