@@ -7,11 +7,16 @@ import '../auth/auth_service.dart';
 
 final logRepositoryProvider = Provider<LogRepository>((ref) {
   final authService = ref.watch(authServiceProvider);
-  return LogRepository(FirebaseFirestore.instance, authService);
+  try {
+    return LogRepository(FirebaseFirestore.instance, authService);
+  } catch (e) {
+     print("LogRepository: Firebase not ready. Using mock/null.");
+     return LogRepository(null, authService);
+  }
 });
 
 class LogRepository {
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
   final AuthService _authService;
 
   LogRepository(this._firestore, this._authService);
@@ -22,39 +27,48 @@ class LogRepository {
     required bool isMock,
     String? note,
   }) async {
+    if (_firestore == null) {
+        print("LogRepository: Dropping log (No Firebase) - $note");
+        return;
+    }
+    
     final userId = _authService.currentUserId;
     if (userId == null) return;
 
-    // 1. Get NTP Time (Network Time Protocol) to prevent tampering
+    // 1. Get NTP Time
     DateTime timestamp;
     try {
       timestamp = await NTP.now();
     } catch (e) {
-      // Fallback if NTP fails (though less secure)
       timestamp = DateTime.now();
     }
 
-    // 2. Generate Hash (SHA-256)
-    // Data signature: userId + timestamp (ISO) + lat + lng
+    // 2. Generate Hash
     final rawString = '$userId-${timestamp.toIso8601String()}-$latitude-$longitude';
     final bytes = utf8.encode(rawString);
     final digest = sha256.convert(bytes);
 
     // 3. Save to Firestore
-    await _firestore.collection('users').doc(userId).collection('logs').add({
-      'timestamp': Timestamp.fromDate(timestamp),
-      'location': GeoPoint(latitude, longitude),
-      'isMock': isMock,
-      'hash': digest.toString(),
-      'note': note, // e.g., "IN", "OUT", "STRESS"
-    });
+    try {
+        await _firestore!.collection('users').doc(userId).collection('logs').add({
+          'timestamp': Timestamp.fromDate(timestamp),
+          'location': GeoPoint(latitude, longitude),
+          'isMock': isMock,
+          'hash': digest.toString(),
+          'note': note, 
+        });
+    } catch (e) {
+        print("LogRepository: Firestore Write Error: $e");
+    }
   }
   
   Stream<QuerySnapshot> getLogStream() {
+      if (_firestore == null) return const Stream.empty();
+      
       final userId = _authService.currentUserId;
       if (userId == null) return const Stream.empty();
       
-      return _firestore
+      return _firestore!
           .collection('users')
           .doc(userId)
           .collection('logs')

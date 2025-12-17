@@ -127,7 +127,11 @@ class TrackingService {
 
   static Future<void> _logToFirestore(Position position, String note) async {
       try {
-          final user = FirebaseAuth.instance.currentUser;
+          // Safeguard: Check if Firebase is actually init in this isolate?
+          // If not, accessing instance might throw or be null.
+          
+          final instance = FirebaseAuth.instance; // Might throw
+          final user = instance.currentUser;
           if (user == null) return;
           
           DateTime timestamp = await NTP.now();
@@ -143,6 +147,10 @@ class TrackingService {
             'note': note,
             'generated_by': 'background_service'
           });
+      } catch (e) {
+          print("Log Error: $e");
+      }
+  }
       } catch (e) {
           print("Log Error: $e");
       }

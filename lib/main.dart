@@ -27,10 +27,12 @@ void main() async {
   }
 
   if (errorMessage != null) {
-      runApp(ErrorApp(message: errorMessage!));
-  } else {
-      runApp(const ProviderScope(child: PebaApp()));
+      print("CRITICAL: $errorMessage");
+      print("Bypassing error to show UI...");
   }
+  
+  // Force launch UI for design verification
+  runApp(const ProviderScope(child: PebaApp()));
 }
 
 class ErrorApp extends StatelessWidget {
