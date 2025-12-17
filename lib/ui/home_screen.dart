@@ -47,7 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Working Location Set! Tracking Enabled.')),
+        const SnackBar(content: Text('勤務地を設定しました。計測を開始します。')), // Working Location Set! Tracking Enabled.
       );
     }
     
@@ -72,7 +72,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Recorded! (╬ Ò ‸ Ó) Estimated +¥500 (Moral Damage)'),
+          content: Text('記録完了！ (╬ Ò ‸ Ó) 推定 +500円 (精神的苦痛)'), // Recorded! (╬ Ò ‸ Ó) Estimated +¥500 (Moral Damage)
           duration: Duration(seconds: 1),
           backgroundColor: Colors.redAccent,
         ),
@@ -94,7 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'ESTIMATED UNPAID',
+                '未払い残業代（概算）', // ESTIMATED UNPAID
                 style: TextStyle(color: Colors.grey, letterSpacing: 2),
                 textAlign: TextAlign.center,
               ),
@@ -138,7 +138,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   child: const Center(
                     child: Text(
-                      'DAMMIT!',
+                      'ちくしょう！', // DAMMIT! -> Using colloquial "Dammit" equiv
                       style: TextStyle(
                         color: Colors.redAccent,
                         fontWeight: FontWeight.bold,
@@ -158,7 +158,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                    TextButton.icon(
                     onPressed: _setWorkplace, 
                     icon: const Icon(Icons.location_on, color: Colors.white70),
-                    label: const Text('SET WORKPLACE', style: TextStyle(color: Colors.white70)),
+                    label: const Text('勤務地を設定', style: TextStyle(color: Colors.white70)), // SET WORKPLACE
                   ),
                 ],
               )
