@@ -6,10 +6,21 @@ import 'ui/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   
-  // Initialize Background Service
-  await TrackingService.initialize();
+  // 1. Try Initialize Firebase (Timeout 3s)
+  try {
+    await Firebase.initializeApp().timeout(const Duration(seconds: 3));
+  } catch (e) {
+    print("WARNING: Firebase Init Failed or Timed out. App running in Offline/Fallback mode. Error: $e");
+  }
+  
+  // 2. Try Initialize Background Service (Timeout 3s)
+  try {
+    // Initialize Background Service
+    await TrackingService.initialize().timeout(const Duration(seconds: 3));
+  } catch (e) {
+    print("WARNING: Background Service Init Failed. Tracking disabled. Error: $e");
+  }
 
   runApp(const ProviderScope(child: PebaApp()));
 }
