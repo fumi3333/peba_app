@@ -11,8 +11,6 @@ void main() async {
   
   // 1. Try Initialize Firebase (Timeout 5s - bumped slightly)
   try {
-  // 1. Try Initialize Firebase (Timeout 5s - bumped slightly)
-  try {
     await Firebase.initializeApp().timeout(const Duration(seconds: 5));
   } catch (e) {
     errorMessage = "Firebase 初期化失敗… (´；ω；｀) : $e";
