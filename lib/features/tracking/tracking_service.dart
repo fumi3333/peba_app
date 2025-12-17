@@ -34,13 +34,10 @@ class TrackingService {
     final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
         FlutterLocalNotificationsPlugin();
 
-    if (await flutterLocalNotificationsPlugin
+    await flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
                 AndroidFlutterLocalNotificationsPlugin>()
-            ?.createNotificationChannel(channel) ==
-        null) {
-       // Handle error or ignore
-    }
+            ?.createNotificationChannel(channel);
 
     await service.configure(
       androidConfiguration: AndroidConfiguration(
