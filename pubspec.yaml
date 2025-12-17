@@ -23,7 +23,7 @@ dependencies:
   # --- Sensor & Background ---
   geolocator: ^10.1.0 # GPS取得
   flutter_background_service: ^5.0.0 # バックグラウンド動作
-  flutter_local_notifications: ^16.3.0 # 通知（常駐用）
+  flutter_local_notifications: ^17.0.0 # 通知（常駐用）
   permission_handler: ^11.1.0 # 面倒な権限許可を管理
 
   # --- Security & Evidsence ---
