@@ -151,8 +151,5 @@ class TrackingService {
           print("Log Error: $e");
       }
   }
-      } catch (e) {
-          print("Log Error: $e");
-      }
-  }
+
 }
