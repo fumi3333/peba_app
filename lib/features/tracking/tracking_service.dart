@@ -26,10 +26,13 @@ class TrackingService {
     // Android Notification Setup
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       notificationChannelId,
-      'Peba 常駐サービス', // Peba Service
-      description: 'Pebaが静かに監視中...', // Peba is silently watching...
+      'Peba 常駐サービス',
+      description: 'Pebaが静かに監視中... ( ˘ω˘)ｽﾔｧ', 
       importance: Importance.low,
     );
+
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
 
     await flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
@@ -42,8 +45,8 @@ class TrackingService {
         autoStart: false,
         isForegroundMode: true,
         notificationChannelId: notificationChannelId,
-        initialNotificationTitle: 'Peba 動作中', // Peba Active
-        initialNotificationContent: '監視を開始しました...', // Monitoring implementation...
+        initialNotificationTitle: 'Peba 動作中 (｀･ω･´)', 
+        initialNotificationContent: '監視を開始しました... (ΦωΦ)',
         foregroundServiceNotificationId: notificationId,
       ),
       iosConfiguration: IosConfiguration(
@@ -77,8 +80,8 @@ class TrackingService {
         if (await service.isForegroundService()) {
           // Update notification
           service.setForegroundNotificationInfo(
-            title: "Peba 監視中", // Peba Monitoring
-            content: "最終スキャン: ${DateTime.now()}", // Last scan:
+            title: "Peba 監視中 (・∀・)", 
+            content: "最終スキャン: ${DateTime.now()} |ω・`)"
           );
         }
       }

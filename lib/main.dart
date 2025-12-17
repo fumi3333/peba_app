@@ -11,9 +11,11 @@ void main() async {
   
   // 1. Try Initialize Firebase (Timeout 5s - bumped slightly)
   try {
+  // 1. Try Initialize Firebase (Timeout 5s - bumped slightly)
+  try {
     await Firebase.initializeApp().timeout(const Duration(seconds: 5));
   } catch (e) {
-    errorMessage = "Firebase 初期化失敗: $e";
+    errorMessage = "Firebase 初期化失敗… (´；ω；｀) : $e";
   }
   
   // 2. Try Initialize Background Service (Only if Firebase passed, otherwise pointles to restart service logging)
@@ -52,7 +54,7 @@ class ErrorApp extends StatelessWidget {
               children: [
                 const Icon(Icons.error_outline, size: 64, color: Colors.white),
                 const SizedBox(height: 16),
-                const Text("初期化エラー", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), // Critical Init Error
+                const Text("初期化エラー (´・ω・｀)", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
                 const SizedBox(height: 16),
                 Text(message, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
               ],
