@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -27,7 +28,7 @@ class TrackingService {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       notificationChannelId,
       'Peba 常駐サービス',
-      description: 'Pebaが静かに監視中... ( ˘ω˘)ｽﾔｧ', 
+      description: 'Pebaが静かに監視中...', 
       importance: Importance.low,
     );
 

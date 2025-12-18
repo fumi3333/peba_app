@@ -103,19 +103,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 stream: logStream,
                 builder: (context, snapshot) {
                   // Fix for Infinite Loading:
-                  // If connection is waiting (initial load), show loader.
-                  // BUT, if we are in "offline/fallback" mode, the stream might be empty and finish instantly.
-                  
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                      // Optional: We could add a timeout wrapper here, but for now 
-                      // let's assume if it's taking too long it's network.
-                      // However, to solve the User's specific "infinite loop" complaint which is likely due to
-                      // the previous code defaulting to loader if !hasData:
-                      return const Center(child: CircularProgressIndicator());
+                  // If connection is waiting (initial load) OR no data, just show default 0.
+                  // We do NOT want to show a loader that might hang if Firebase is offline.
+                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                       return const Text(
+                        '¥ 0',
+                        style: TextStyle(
+                          color: Colors.white30,
+                          fontSize: 64, 
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Monospace'
+                        ),
+                        textAlign: TextAlign.center,
+                      );
                   }
 
                   // If we have no data (e.g. empty stream from offline mode, or just no logs yet)
-                  // Show default instead of loading.
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                        return const Text(
                         '¥ 0',
@@ -149,7 +152,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               
               const Spacer(),
               
-              // Stress Button -> "勤怠" (Kintai)
+              // Stress Button -> "勤怠" (Clean)
               GestureDetector(
                 onTap: _onStressPressed,
                 child: Container(
@@ -182,7 +185,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                    TextButton.icon(
                     onPressed: _setWorkplace, 
                     icon: const Icon(Icons.location_on, color: Colors.white70),
-                    label: const Text('勤務地を設定 (・∀・)', style: TextStyle(color: Colors.white70)),
+                    label: const Text('勤務地を設定', style: TextStyle(color: Colors.white70)),
                   ),
                 ],
               )
