@@ -57,9 +57,49 @@ class LogRepository {
           'hash': digest.toString(),
           'note': note, 
         });
+        
+        // 4. Update Daily Record
+        await _updateDailyRecord(userId, timestamp, latitude, longitude);
+        
     } catch (e) {
         print("LogRepository: Firestore Write Error: $e");
     }
+  }
+
+  Future<void> _updateDailyRecord(String userId, DateTime timestamp, double lat, double lng) async {
+      try {
+          // Format Date YYYYMMDD
+          final dateStr = "${timestamp.year}${timestamp.month.toString().padLeft(2, '0')}${timestamp.day.toString().padLeft(2, '0')}";
+          final docRef = _firestore!.collection('users').doc(userId).collection('records').doc(dateStr);
+          
+          await _firestore!.runTransaction((transaction) async {
+              final snapshot = await transaction.get(docRef);
+              
+              if (!snapshot.exists) {
+                  transaction.set(docRef, {
+                      'userId': userId,
+                      'startTime': Timestamp.fromDate(timestamp),
+                      'endTime': Timestamp.fromDate(timestamp),
+                      'totalAmount': 375, // 15 mins @ 1500/hr
+                      'locations': [GeoPoint(lat, lng)],
+                      'date': dateStr
+                  });
+              } else {
+                  final data = snapshot.data() as Map<String, dynamic>;
+                  int currentAmount = data['totalAmount'] ?? 0;
+                  List<dynamic> locations = data['locations'] ?? [];
+                  locations.add(GeoPoint(lat, lng));
+                  
+                  transaction.update(docRef, {
+                      'endTime': Timestamp.fromDate(timestamp),
+                      'totalAmount': currentAmount + 375,
+                      'locations': locations
+                  });
+              }
+          });
+      } catch (e) {
+          print("LogRepository: Daily Record Update Error: $e");
+      }
   }
   
   Stream<QuerySnapshot> getLogStream() {

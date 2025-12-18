@@ -148,8 +148,49 @@ class TrackingService {
             'note': note,
             'generated_by': 'background_service'
           });
+          
+          // Update Daily Record
+          await _updateDailyRecord(user.uid, timestamp, position.latitude, position.longitude);
+          
       } catch (e) {
           print("Log Error: $e");
+      }
+  }
+
+  static Future<void> _updateDailyRecord(String userId, DateTime timestamp, double lat, double lng) async {
+      try {
+          final firestore = FirebaseFirestore.instance;
+          // Format Date YYYYMMDD
+          final dateStr = "${timestamp.year}${timestamp.month.toString().padLeft(2, '0')}${timestamp.day.toString().padLeft(2, '0')}";
+          final docRef = firestore.collection('users').doc(userId).collection('records').doc(dateStr);
+          
+          await firestore.runTransaction((transaction) async {
+              final snapshot = await transaction.get(docRef);
+              
+              if (!snapshot.exists) {
+                  transaction.set(docRef, {
+                      'userId': userId,
+                      'startTime': Timestamp.fromDate(timestamp),
+                      'endTime': Timestamp.fromDate(timestamp),
+                      'totalAmount': 375, // 15 mins @ 1500/hr
+                      'locations': [GeoPoint(lat, lng)],
+                      'date': dateStr
+                  });
+              } else {
+                  final data = snapshot.data() as Map<String, dynamic>;
+                  int currentAmount = data['totalAmount'] ?? 0;
+                  List<dynamic> locations = data['locations'] ?? [];
+                  locations.add(GeoPoint(lat, lng));
+                  
+                  transaction.update(docRef, {
+                      'endTime': Timestamp.fromDate(timestamp),
+                      'totalAmount': currentAmount + 375,
+                      'locations': locations
+                  });
+              }
+          });
+      } catch (e) {
+          print("BgService Record Error: $e");
       }
   }
 
