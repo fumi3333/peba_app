@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'features/tracking/tracking_service.dart';
 import 'ui/home_screen.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,7 +12,9 @@ void main() async {
   
   // 1. Try Initialize Firebase (Timeout 5s - bumped slightly)
   try {
-    await Firebase.initializeApp().timeout(const Duration(seconds: 5));
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ).timeout(const Duration(seconds: 5));
   } catch (e) {
     errorMessage = "Firebase 初期化失敗: $e";
   }
@@ -70,8 +73,22 @@ class PebaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Peba',
-      theme: ThemeData.dark(), // Minimum viable dark mode
+      title: 'PAYBACK',
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primaryColor: const Color(0xFF1A237E), // Indigo 900 (Navy)
+        scaffoldBackgroundColor: const Color(0xFFF5F5F7), // Light Grey (macOS/iOS style)
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          primary: const Color(0xFF1A237E), 
+          secondary: const Color(0xFF3949AB),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF1A237E),
+          elevation: 0,
+        ),
+        useMaterial3: true,
+      ),
       home: const HomeScreen(),
     );
   }

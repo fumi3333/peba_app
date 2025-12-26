@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:intl/intl.dart'; 
 import '../features/auth/auth_service.dart';
 import '../features/logging/log_repository.dart';
-import '../features/tracking/tracking_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -17,16 +17,15 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Mock settings for MVP
   final double hourlyWage = 1500; 
+  final NumberFormat currencyFormat = NumberFormat.currency(locale: 'ja_JP', symbol: '¥');
 
   @override
   void initState() {
     super.initState();
-    // Ensure we sign in immediately
     ref.read(authServiceProvider).signInAnonymously();
   }
 
   Future<void> _setWorkplace() async {
-    // Check permissions first
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -34,7 +33,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
     
     if (permission == LocationPermission.deniedForever) {
-      // Open settings
       await Geolocator.openAppSettings();
       return;
     }
@@ -47,37 +45,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('勤務地セット完了！計測開始だ (｀･ω･´)ゞ')), 
+        const SnackBar(
+          content: Text('勤務地を更新しました。エリア内での滞在を記録します。'), 
+          backgroundColor: Color(0xFF1A237E),
+        ), 
       );
     }
     
-    // Start Service if not running
     final service = FlutterBackgroundService();
     if (!await service.isRunning()) {
       service.startService();
     }
   }
 
-  Future<void> _onStressPressed() async {
-    // 1. Log "Stress"
+  Future<void> _onRecordLogPressed() async {
     final position = await Geolocator.getCurrentPosition();
     await ref.read(logRepositoryProvider).logEntry(
       latitude: position.latitude, 
       longitude: position.longitude, 
       isMock: position.isMocked,
-      note: 'STRESS BUTTON'
+      note: 'MANUAL_ENTRY'
     );
     
-    // 2. Feedback
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('記録完了！お疲れ様です (｀･ω･´)ゞ 推定 +500円'), 
-          duration: Duration(seconds: 1),
-          backgroundColor: Colors.redAccent,
+          content: Text('勤務ログを記録しました。'), 
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
+  }
+
+  void _onCashOutPressed() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('One-Click Action'),
+        content: const Text('【請求書類自動生成】\n\n現在、あなたのログに基づいた「請求通知書」と「計算書」をプレビューする機能を準備中です。\n(法的効力のあるPDFをワンクリックで生成・郵送します)'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('閉じる'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -85,112 +99,176 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final logStream = ref.watch(logRepositoryProvider).getLogStream();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Dark mode for tired eyes
+      appBar: AppBar(
+        title: const Text(
+          'PAYBACK', 
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0)
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: _setWorkplace,
+            tooltip: '勤務地設定',
+          ),
+        ],
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                '未払い額', // Simplified title
-                style: TextStyle(color: Colors.grey, letterSpacing: 2),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              StreamBuilder(
-                stream: logStream,
-                builder: (context, snapshot) {
-                  // Fix for Infinite Loading:
-                  // If connection is waiting (initial load) OR no data, just show default 0.
-                  // We do NOT want to show a loader that might hang if Firebase is offline.
-                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                       return const Text(
-                        '¥ 0',
-                        style: TextStyle(
-                          color: Colors.white30,
-                          fontSize: 64, 
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Monospace'
-                        ),
-                        textAlign: TextAlign.center,
-                      );
-                  }
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 1. Asset Card
+                _buildAssetCard(logStream),
 
-                  // If we have no data (e.g. empty stream from offline mode, or just no logs yet)
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                       return const Text(
-                        '¥ 0',
-                        style: TextStyle(
-                          color: Colors.white30,
-                          fontSize: 64, 
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Monospace'
-                        ),
-                        textAlign: TextAlign.center,
-                      );
-                  }
-                  
-                  final docs = snapshot.data!.docs;
-                  double totalHours = docs.length * 0.25; 
-                  int amount = (totalHours * hourlyWage).round();
+                const SizedBox(height: 32),
 
-                  return Text(
-                    '¥ $amount',
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontSize: 64,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Monospace'
-                    ),
-                    textAlign: TextAlign.center,
-                  );
-                },
-              ),
-              const SizedBox(height: 48),
+                // 2. Action Buttons
+                _buildActionButtons(),
+
+                const SizedBox(height: 32),
+                
+                // 3. Info / Cash Out
+                _buildCashOutCard(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssetCard(Stream<dynamic> logStream) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withAlpha(26), // approx 0.1 opacity
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Text(
+            '推定未収残高',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
+          StreamBuilder(
+            stream: logStream,
+            builder: (context, snapshot) {
+              int amount = 0;
+              if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                 final docs = snapshot.data!.docs;
+                 double totalHours = docs.length * 0.25; 
+                 amount = (totalHours * hourlyWage).round();
+              }
               
-              const Spacer(),
-              
-              // Stress Button -> "勤怠" (Clean)
-              GestureDetector(
-                onTap: _onStressPressed,
-                child: Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.redAccent, width: 2)
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '勤怠', 
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+              return Text(
+                currencyFormat.format(amount),
+                style: const TextStyle(
+                  color: Color(0xFF1A237E), // Navy
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -1.0,
+                  fontFamily: 'RobotoMono', // Ensure monospace-ish feel if available
                 ),
-              ),
-              
-              const Spacer(),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Silent Evidence (自動証拠収集) 稼働中',
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
 
-              // Bottom Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: _onRecordLogPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A237E), // Navy
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            icon: const Icon(Icons.add_task),
+            label: const Text(
+              '勤務ログを記録',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildCashOutCard() {
+    return InkWell(
+      onTap: _onCashOutPressed,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8EAF6), // Light Indigo
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFC5CAE9)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.gavel, color: Color(0xFF1A237E)), // Gavel for Legal Action
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   TextButton.icon(
-                    onPressed: _setWorkplace, 
-                    icon: const Icon(Icons.location_on, color: Colors.white70),
-                    label: const Text('勤務地を設定', style: TextStyle(color: Colors.white70)),
+                  Text(
+                    '請求書類を作成',
+                    style: TextStyle(
+                      color: Color(0xFF1A237E),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  Text(
+                    'One-Click Action (弁護士監修PDF)',
+                    style: TextStyle(
+                      color: Color(0xFF3949AB),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
-              )
-            ],
-          ),
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF1A237E)),
+          ],
         ),
       ),
     );

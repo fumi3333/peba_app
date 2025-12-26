@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "895615298312",
+    "project_id": "example-peba-app",
+    "storage_bucket": "example-peba-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:895615298312:android:0955f1628b69925aca5abd",
+        "android_client_info": {
+          "package_name": "com.peba.peba_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_iiwlp-SontA3Ekp-9oSHU5ntzKqsMhs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
