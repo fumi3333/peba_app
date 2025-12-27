@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../features/auth/auth_service.dart';
 import '../features/tracking/tracking_service.dart';
 import 'settings_screen.dart';
+import 'log_history_screen.dart';
+import 'invoice_form_screen.dart';
 import '../features/logging/log_repository.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -43,6 +45,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _loadSettings();
   }
 
+  Future<void> _openHistory() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LogHistoryScreen()),
+    );
+  }
+
   Future<void> _setWorkplace() async {
     // Legacy method maintained for now, but UI uses SettingsScreen
   }
@@ -69,18 +78,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _onCashOutPressed() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('One-Click Action'),
-        content: const Text('【請求書類自動生成】\n\n現在、あなたのログに基づいた「請求通知書」と「計算書」をプレビューする機能を準備中です。\n(法的効力のあるPDFをワンクリックで生成・郵送します)'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('閉じる'),
-          ),
-        ],
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const InvoiceFormScreen()),
     );
   }
 
@@ -95,6 +95,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0)
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: _openHistory,
+            tooltip: '履歴',
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: _openSettings,
