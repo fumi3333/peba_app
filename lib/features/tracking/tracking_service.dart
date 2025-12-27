@@ -7,11 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:ntp/ntp.dart';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../logging/log_repository.dart';
 
 // NOTE: This service runs in a separate isolate (background).
 // We cannot easily inject Riverpod providers here without complex setup.
@@ -20,6 +17,9 @@ import 'package:crypto/crypto.dart';
 class TrackingService {
   static const String notificationChannelId = 'peba_foreground';
   static const int notificationId = 888;
+
+  // Riverpod container for background isolate
+  static ProviderContainer? _container;
 
   static Future<void> initialize() async {
     final service = FlutterBackgroundService();
@@ -70,9 +70,9 @@ class TrackingService {
     
     // Ensure DartUI is ready
     DartPluginRegistrant.ensureInitialized();
-    
-    // Check SharedPrefs for Workplace Location
-    final prefs = await SharedPreferences.getInstance();
+
+    // Initialize Riverpod container for this isolate
+    _container = ProviderContainer();
     
     // Periodic Timer (e.g., every 15 minutes to save battery but catch entries)
     // For MVP demo, lets might make it faster, but requirement said "periodic".
@@ -87,18 +87,19 @@ class TrackingService {
         }
       }
       
-      await _performCheck(prefs);
+      await _performCheck();
     });
   }
   
-  static Future<void> _performCheck(SharedPreferences prefs) async {
+  static Future<void> _performCheck() async {
       // 1. Get Current Location
       try {
         Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
         
-        // 2. Get Workplace Location
-        double? workLat = prefs.getDouble('work_lat');
-        double? workLng = prefs.getDouble('work_lng');
+        final prefs = await SharedPreferences.getInstance();
+        final double? workLat = prefs.getDouble('work_lat');
+        final double? workLng = prefs.getDouble('work_lng');
+        final int hourlyWage = prefs.getInt('hourly_wage') ?? 1500; // Read hourly_wage
         
         if (workLat == null || workLng == null) return;
         
@@ -110,12 +111,19 @@ class TrackingService {
           workLng
         );
         
-        // 4. Logic: If inside 100m, Log IT.
+        // 4. Logic: If inside 200m, Log IT.
         // For MVP, we log every check if inside, or if we just entered/exited.
         // To keep it simple stateless: Log if inside radius.
         
-        if (distanceInMeters <= 100) {
-            await _logToFirestore(position, "STAY");
+        if (distanceInMeters <= 200) { // Changed radius to 200m
+            // Use Riverpod container to access logRepositoryProvider
+            await _container!.read(logRepositoryProvider).logEntry(
+              latitude: position.latitude, 
+              longitude: position.longitude, 
+              isMock: position.isMocked,
+              note: 'AUTO_TRACKING',
+              hourlyWage: hourlyWage, // Pass hourlyWage
+            );
         } 
         
         // Advanced: We could track state (wasOutside -> nowInside = IN) using SharedPreferences
@@ -126,72 +134,6 @@ class TrackingService {
       }
   }
 
-  static Future<void> _logToFirestore(Position position, String note) async {
-      try {
-          // Safeguard: Check if Firebase is actually init in this isolate?
-          // If not, accessing instance might throw or be null.
-          
-          final instance = FirebaseAuth.instance; // Might throw
-          final user = instance.currentUser;
-          if (user == null) return;
-          
-          DateTime timestamp = await NTP.now();
-          
-          final rawString = '${user.uid}-${timestamp.toIso8601String()}-${position.latitude}-${position.longitude}';
-          final digest = sha256.convert(utf8.encode(rawString));
 
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('logs').add({
-            'timestamp': Timestamp.fromDate(timestamp),
-            'location': GeoPoint(position.latitude, position.longitude),
-            'isMock': position.isMocked,
-            'hash': digest.toString(),
-            'note': note,
-            'generated_by': 'background_service'
-          });
-          
-          // Update Daily Record
-          await _updateDailyRecord(user.uid, timestamp, position.latitude, position.longitude);
-          
-      } catch (e) {
-          print("Log Error: $e");
-      }
-  }
-
-  static Future<void> _updateDailyRecord(String userId, DateTime timestamp, double lat, double lng) async {
-      try {
-          final firestore = FirebaseFirestore.instance;
-          // Format Date YYYYMMDD
-          final dateStr = "${timestamp.year}${timestamp.month.toString().padLeft(2, '0')}${timestamp.day.toString().padLeft(2, '0')}";
-          final docRef = firestore.collection('users').doc(userId).collection('records').doc(dateStr);
-          
-          await firestore.runTransaction((transaction) async {
-              final snapshot = await transaction.get(docRef);
-              
-              if (!snapshot.exists) {
-                  transaction.set(docRef, {
-                      'userId': userId,
-                      'startTime': Timestamp.fromDate(timestamp),
-                      'endTime': Timestamp.fromDate(timestamp),
-                      'totalAmount': 375, // 15 mins @ 1500/hr
-                      'locations': [GeoPoint(lat, lng)],
-                      'date': dateStr
-                  });
-              } else {
-                  final data = snapshot.data() as Map<String, dynamic>;
-                  int currentAmount = data['totalAmount'] ?? 0;
-                  List<dynamic> locations = data['locations'] ?? [];
-                  locations.add(GeoPoint(lat, lng));
-                  
-                  transaction.update(docRef, {
-                      'endTime': Timestamp.fromDate(timestamp),
-                      'totalAmount': currentAmount + 375,
-                      'locations': locations
-                  });
-              }
-          });
-      } catch (e) {
-          print("BgService Record Error: $e");
-      }
-  }
 
 }

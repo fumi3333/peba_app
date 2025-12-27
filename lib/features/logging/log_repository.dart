@@ -26,6 +26,7 @@ class LogRepository {
     required double longitude,
     required bool isMock,
     String? note,
+    required int hourlyWage,
   }) async {
     if (_firestore == null) {
         print("LogRepository: Dropping log (No Firebase) - $note");

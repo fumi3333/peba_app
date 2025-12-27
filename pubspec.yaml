@@ -30,6 +30,8 @@ dependencies:
   ntp: ^2.0.0 # 正確な時刻取得（改ざん防止）
   crypto: ^3.0.3 # SHA-256ハッシュ化
   shared_preferences: ^2.2.2 # 設定（職場位置）の保存
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:

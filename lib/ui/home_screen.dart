@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:intl/intl.dart'; 
 import '../features/auth/auth_service.dart';
+import '../features/tracking/tracking_service.dart';
+import 'settings_screen.dart';
 import '../features/logging/log_repository.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -15,47 +17,34 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  // Mock settings for MVP
-  final double hourlyWage = 1500; 
+  // Settings
+  int _hourlyWage = 1500; 
   final NumberFormat currencyFormat = NumberFormat.currency(locale: 'ja_JP', symbol: '¥');
 
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     ref.read(authServiceProvider).signInAnonymously();
   }
 
-  Future<void> _setWorkplace() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
-    }
-    
-    if (permission == LocationPermission.deniedForever) {
-      await Geolocator.openAppSettings();
-      return;
-    }
-
-    final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    
+  Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('work_lat', position.latitude);
-    await prefs.setDouble('work_lng', position.longitude);
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('勤務地を更新しました。エリア内での滞在を記録します。'), 
-          backgroundColor: Color(0xFF1A237E),
-        ), 
-      );
-    }
-    
-    final service = FlutterBackgroundService();
-    if (!await service.isRunning()) {
-      service.startService();
-    }
+    setState(() {
+      _hourlyWage = prefs.getInt('hourly_wage') ?? 1500;
+    });
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
+    _loadSettings();
+  }
+
+  Future<void> _setWorkplace() async {
+    // Legacy method maintained for now, but UI uses SettingsScreen
   }
 
   Future<void> _onRecordLogPressed() async {
@@ -64,7 +53,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       latitude: position.latitude, 
       longitude: position.longitude, 
       isMock: position.isMocked,
-      note: 'MANUAL_ENTRY'
+      note: 'MANUAL_ENTRY',
+      hourlyWage: _hourlyWage,
     );
     
     if (mounted) {
@@ -107,8 +97,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: _setWorkplace,
-            tooltip: '勤務地設定',
+            onPressed: _openSettings,
+            tooltip: '設定',
           ),
         ],
       ),
@@ -171,7 +161,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
                  final docs = snapshot.data!.docs;
                  double totalHours = docs.length * 0.25; 
-                 amount = (totalHours * hourlyWage).round();
+                 amount = (totalHours * _hourlyWage).round();
               }
               
               return Text(
