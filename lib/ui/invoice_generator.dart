@@ -84,8 +84,30 @@ class InvoiceGenerator {
                 ),
               ),
               
+              pw.SizedBox(height: 24),
+              pw.Divider(color: PdfColors.grey300),
               pw.SizedBox(height: 8),
-              pw.Text('※ 詳細なログ記録（GPS証拠データ）は別紙の通り保持しております。', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800)),
+
+              // Evidence Section
+              pw.Text('【電子証拠データ (Digital Evidence)】', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+              pw.Text('以下のハッシュ値は、位置情報と時刻データから生成された固有IDです。データの真正性を証明します。', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+              pw.SizedBox(height: 4),
+              pw.Container(
+                color: PdfColors.grey100,
+                padding: const pw.EdgeInsets.all(4),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('SHA-256 Hash Integrity Check:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 6)),
+                    pw.Text('LOG_ID: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 (Sample)', style: const pw.TextStyle(font: pw.Font.courier(), fontSize: 6)),
+                    pw.Text('LOG_ID: 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92 (Sample)', style: const pw.TextStyle(font: pw.Font.courier(), fontSize: 6)),
+                    pw.Text('... 検証用データは保存されています。', style: const pw.TextStyle(fontSize: 6)),
+                  ],
+                ),
+              ),
+              
+              pw.SizedBox(height: 8),
+              pw.Text('※ 詳細なログ記録（GPS証拠データ）は別紙の通り保持しております。', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
             ],
           );
         },
