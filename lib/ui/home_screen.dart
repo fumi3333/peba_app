@@ -57,6 +57,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _onRecordLogPressed() async {
+    // Validation: Check if Location is set
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getDouble('work_lat') == null) {
+      if (mounted) {
+         showDialog(
+          context: context, 
+          builder: (_) => AlertDialog(
+            title: const Text('設定が必要です'),
+            content: const Text('正確な記録のため、まずは「設定」から\n・勤務地の場所\n・時給\nを設定してください。'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  _openSettings(); // Go to settings
+                },
+                child: const Text('設定画面へ'),
+              ),
+            ],
+          )
+        );
+      }
+      return;
+    }
+
     final position = await Geolocator.getCurrentPosition();
     await ref.read(logRepositoryProvider).logEntry(
       latitude: position.latitude, 
@@ -182,10 +206,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Silent Evidence (自動証拠収集) 稼働中',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
-          ),
+              const Text(
+                '本来もらえる額 (推定)',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
         ],
       ),
     );
