@@ -16,6 +16,33 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   LatLng _initialCenter = const LatLng(35.6812, 139.7671); // Tokyo Station
   LatLng? _selectedLocation;
   bool _isLoading = true;
+  bool _isGettingLocation = false;
+
+  Future<void> _moveToCurrentLocation() async {
+    setState(() => _isGettingLocation = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw '位置情報の権限がありません';
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+         throw '位置情報が設定で無効化されています';
+      }
+
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      _mapController.move(LatLng(pos.latitude, pos.longitude), 16.0); // Slightly higher zoom
+    } catch (e) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('現在地を取得できませんでした: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isGettingLocation = false);
+    }
+  }
 
   @override
   void initState() {
@@ -116,11 +143,17 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   right: 16,
                   bottom: 32,
                   child: FloatingActionButton(
-                    onPressed: () async {
-                      final pos = await Geolocator.getCurrentPosition();
-                      _mapController.move(LatLng(pos.latitude, pos.longitude), 15);
-                    },
-                    child: const Icon(Icons.my_location),
+                    heroTag: 'current_loc_btn', // Unique tag
+                    onPressed: _isGettingLocation ? null : _moveToCurrentLocation,
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black87,
+                    child: _isGettingLocation
+                      ? const SizedBox(
+                          width: 24, 
+                          height: 24, 
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location),
                   ),
                 ),
               ],
